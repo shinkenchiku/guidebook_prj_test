@@ -1,0 +1,7 @@
+# folder
+.venv
+keys
+
+
+# file
+.env
