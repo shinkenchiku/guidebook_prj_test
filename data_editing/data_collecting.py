@@ -40,8 +40,10 @@ keys = [{
             "key":"1rXjOAkpL6GfyO6mWxwwUR0PyFtuNHrt7X3QoHY1uN3k"
          }]
 
-init_data = os.path.join(target_dir, 'data', 'init.json')
-main_data = os.path.join(target_dir, 'data', 'main.json')
+# init_data = os.path.join(target_dir, 'data', 'init.json')
+# main_data = os.path.join(target_dir, 'data', 'main.json')
+init_data = '/Users/horibld303/Documents/guidebook_prj_test/js/public/data/init.json'
+main_data = '/Users/horibld303/Documents/guidebook_prj_test/js/public/data/main.json'
 
 # process --------------------------
 def main():
