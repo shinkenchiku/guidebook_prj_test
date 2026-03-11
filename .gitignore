@@ -1,7 +1,7 @@
 # folder
 .venv
 keys
-
+./data_editing/__pycache__
 
 # file
 .env
