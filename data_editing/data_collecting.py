@@ -31,6 +31,7 @@ from gspread_dataframe import get_as_dataframe, set_with_dataframe
 
 
 # config --------------------------
+# 情報源シート
 keys = [{
             "sheetname":"UK List",
             "key":"1-tMiiPQiB5zXqdP5PcfHWOpSnoc1fmydVlwFONJjogk"
@@ -40,6 +41,11 @@ keys = [{
             "key":"1rXjOAkpL6GfyO6mWxwwUR0PyFtuNHrt7X3QoHY1uN3k"
          }]
 
+# BQ
+project_id = os.getenv("GCP_PROJECT_ID")
+project_table = 'SKDT_DataTables.projects_all'
+
+# データ作成先
 # init_data = os.path.join(target_dir, 'data', 'init.json')
 # main_data = os.path.join(target_dir, 'data', 'main.json')
 init_data = '/Users/horibld303/Documents/guidebook_prj_test/js/public/data/init.json'
@@ -53,7 +59,7 @@ def main():
     inits = []
     mains = []
     
-    for i, row in tqdm(df_base.iterrows(), leave=False):
+    for _, row in tqdm(df_base.iterrows(), leave=False):
         title = row["title_EN"]
         architect = row["author_EN"]
         link = row["link"]
@@ -100,6 +106,7 @@ def main():
     with open(main_data, mode='w', encoding='utf_8') as f:
         json.dump(mains, f, indent=2, ensure_ascii=False)
 
+# シートからDataFrameを作成
 def getSheetDF(keys):
     df_base = None
     df_add = None
@@ -116,6 +123,15 @@ def getSheetDF(keys):
     
     return df_base, df_add
 
+
+# BQから情報を取得
+# def getDataFromBQ():
+#     query = f"""
+#             SELECT 
+#             FROM `{project_id}.{project_table}`
+#             WHERE 
+
+#             """
 
 if __name__ == "__main__":
     main()
