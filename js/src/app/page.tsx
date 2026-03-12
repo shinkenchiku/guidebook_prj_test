@@ -304,7 +304,15 @@ export default function Home() {
                   </div>
                   <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
                     <div className="text-blue-900 font-bold mb-1 opacity-60">Building Use</div>
-                    <div className="text-black font-bold line-clamp-1">{selectedArch.builduse || '-'}</div>
+                    <div className="text-black font-bold line-clamp-1">
+                      {Array.isArray(selectedArch.builduse) 
+                        ? (selectedArch.builduse.length > 0 ? selectedArch.builduse.join(', ') : '-') 
+                        : (selectedArch.builduse || '-')}
+                    </div>
+                  </div>
+                  <div className="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    <div className="text-blue-900 font-bold mb-1 opacity-60">Region</div>
+                    <div className="text-black font-bold">{selectedArch.region || '-'}</div>
                   </div>
                   <div className="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
                     <div className="text-blue-900 font-bold mb-1 opacity-60">Address</div>

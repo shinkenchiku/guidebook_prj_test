@@ -10,7 +10,7 @@ export interface ArchitectureMain {
   region: string;
   address: string;
   completion: string;
-  builduse: string;
+  builduse: string[];
   memo: string;
   link: string;
   tags: string[];
