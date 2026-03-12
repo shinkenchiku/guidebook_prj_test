@@ -64,7 +64,10 @@ def main():
         architect = row["author_EN"]
         link = row["link"]
         c_year = row["Year"]
-        bldguse = row["bldguse"]
+        
+        bldguse = row["bldguse"].split('||')
+        bldguse = [i.strip() for i in bldguse if i != '']
+        
         memo = row["現地memo"]
         region = row["Region"]
         location = row["latlon"]
