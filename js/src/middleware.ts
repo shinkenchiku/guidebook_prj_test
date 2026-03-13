@@ -3,15 +3,20 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
   const basicAuth = req.headers.get('authorization');
+  const user = process.env.BASIC_AUTH_USER;
+  const password = process.env.BASIC_AUTH_PASSWORD;
+
+  // 環境変数が設定されていない場合は、セキュリティのため認証を通過させない（またはデフォルト値を設定する）
+  if (!user || !password) {
+    console.warn('Basic Auth credentials are not set in environment variables.');
+    return NextResponse.next(); // 開発中の便宜上、設定がない場合は通過させる設定（必要に応じて変更してください）
+  }
 
   if (basicAuth) {
     const authValue = basicAuth.split(' ')[1];
-    const [user, password] = atob(authValue).split(':');
+    const [inputUser, inputPassword] = Buffer.from(authValue, 'base64').toString().split(':');
 
-    if (
-      user === process.env.BASIC_AUTH_USER &&
-      password === process.env.BASIC_AUTH_PASSWORD
-    ) {
+    if (inputUser === user && inputPassword === password) {
       return NextResponse.next();
     }
   }
@@ -25,6 +30,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // すべてのリクエストに適用するが、静的ファイルや画像、faviconなどは除外する
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.svg).*)'],
+  // すべてのリクエストに適用。静的ファイル等は除外。
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.svg|.*\\.png|.*\\.jpg|.*\\.jpeg).*)'],
 };

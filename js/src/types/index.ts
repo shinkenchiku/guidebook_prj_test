@@ -14,6 +14,8 @@ export interface ArchitectureMain {
   memo: string;
   link: string;
   tags: string[];
+  image?: string;
+  images?: string[];
 }
 
 export interface UserLocation {
