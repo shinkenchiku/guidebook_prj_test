@@ -283,6 +283,18 @@ export default function Home() {
 
             {selectedArch ? (
               <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-left-2">
+                {/* 建築画像表示セクション */}
+                <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden border border-gray-100 relative">
+                  <img 
+                    src={selectedArch.image || '/img/noimage.jpg'} 
+                    alt={selectedArch.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/img/noimage.jpg';
+                    }}
+                  />
+                </div>
+
                 <div className="flex justify-between items-start gap-2 text-black">
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-blue-900 leading-snug">{selectedArch.title}</h3>
