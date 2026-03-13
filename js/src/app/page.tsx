@@ -323,15 +323,15 @@ export default function Home() {
       </div>
 
       {/* コンテンツセクション */}
-      <div className="relative w-full md:absolute md:top-0 md:left-0 md:h-full md:w-[30%] z-10 p-4 pointer-events-none flex flex-col gap-4 md:overflow-y-auto no-scrollbar md:bg-gradient-to-r md:from-white/20 md:to-transparent">
+      <div className="relative w-full md:absolute md:top-0 md:left-0 md:h-full md:w-[30%] z-10 p-4 pointer-events-auto flex flex-col gap-4 md:overflow-y-auto custom-scrollbar md:bg-white/5 md:backdrop-blur-[2px]">
         
-        <header className="hidden md:block bg-white shadow-xl rounded-xl p-6 pointer-events-auto border-t-4 border-blue-900">
+        <header className="hidden md:block bg-white shadow-xl rounded-xl p-6 border-t-4 border-blue-900 shrink-0">
           <h1 className="text-2xl font-bold tracking-tight text-blue-900">ARCHI-GUIDE</h1>
           <p className="text-[10px] font-bold text-black uppercase tracking-wider mt-1">Digital Guidebook v1.0</p>
         </header>
 
-        {(selectedArch || window.innerWidth >= 768) && (
-          <section id="arch-info" className={`bg-white shadow-xl rounded-xl p-4 pointer-events-auto min-h-[140px] transition-all duration-300 ${!selectedArch && 'hidden md:block'}`}>
+        {(selectedArch || (isMounted && window.innerWidth >= 768)) && (
+          <section id="arch-info" className={`bg-white shadow-xl rounded-xl p-4 min-h-[140px] transition-all duration-300 shrink-0 ${!selectedArch && 'hidden md:block'}`}>
             <div className="flex items-center gap-2 mb-3 border-b border-gray-100 pb-2">
               <Info className="text-blue-900" size={18} />
               <h2 className="text-sm font-bold text-blue-900 uppercase">Architecture Info</h2>
@@ -456,7 +456,7 @@ export default function Home() {
         )}
 
         {/* 近くの建築 */}
-        <section className="bg-white shadow-xl rounded-xl p-6 pointer-events-auto flex flex-col gap-4">
+        <section className="bg-white shadow-xl rounded-xl p-6 flex flex-col gap-4 shrink-0">
           <div className="flex items-center justify-between border-b border-gray-100 pb-2">
             <div className="flex items-center gap-2">
               <Navigation className="text-blue-900" size={18} />
@@ -474,7 +474,7 @@ export default function Home() {
             </select>
           </div>
           
-          <div className="flex flex-col gap-2 max-h-[400px] md:max-h-[250px] overflow-y-auto pr-1 no-scrollbar text-black">
+          <div className="flex flex-col gap-2 text-black">
             {userLocation ? (
               suggestions.length > 0 ? (
                 suggestions.map((item, idx) => (
@@ -511,7 +511,7 @@ export default function Home() {
         </section>
 
         {/* アチーブメント */}
-        <section className="bg-white shadow-xl rounded-xl p-6 pointer-events-auto">
+        <section className="bg-white shadow-xl rounded-xl p-6 shrink-0 mb-4">
           <button 
             onClick={() => setIsAchievementOpen(!isAchievementOpen)}
             className="w-full flex items-center justify-between border-b border-gray-100 pb-2 mb-4 group"
@@ -540,7 +540,7 @@ export default function Home() {
           </div>
 
           {isAchievementOpen && (
-            <div className="mt-4 flex flex-col gap-2 max-h-[200px] overflow-y-auto no-scrollbar animate-in slide-in-from-top-2 duration-300">
+            <div className="mt-4 flex flex-col gap-2 animate-in slide-in-from-top-2 duration-300">
               {visitedTitles.length > 0 ? (
                 visitedTitles.map((title, i) => (
                   <div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border border-gray-100 text-black">
