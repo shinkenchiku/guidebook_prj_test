@@ -120,13 +120,19 @@ const Map = ({ onSelectArchitecture, userLocation, setUserLocation, radius, comm
   const [route, setRoute] = useState<[number, number][] | null>(null);
 
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      const watchId = navigator.geolocation.watchPosition((position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        });
-      }, (err) => console.error(err), { enableHighAccuracy: true });
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (err) => {
+          console.error("Geolocation error:", err);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
       return () => navigator.geolocation.clearWatch(watchId);
     }
   }, [setUserLocation]);
@@ -151,7 +157,8 @@ const Map = ({ onSelectArchitecture, userLocation, setUserLocation, radius, comm
         .catch(() => {
           setRoute([[userLocation.lat, userLocation.lng], [to.lat, to.lng]]);
         });
-    } else if (command?.type === 'FLY_TO' || command?.type === 'FIT_BOUNDS' || command?.type === 'RESET_VIEW') {
+    } else if (command) {
+      // ルート表示以外のコマンドが発行されたらルートを消去
       setRoute(null);
     }
   }, [command, userLocation]);
