@@ -136,6 +136,7 @@ export default function Home() {
       setRouteDestTitle(null); 
       
       // モバイル時はピン選択でパネルを表示（ただし展開はせず最小限の表示にする）
+      // かつ、スライドメニューが開いていれば閉じる
       if (typeof window !== 'undefined' && window.innerWidth < 768) {
         setIsMobilePanelExpanded(false);
         setActiveMobileMenu(null);
@@ -296,16 +297,34 @@ export default function Home() {
 
     // 一定以上のスワイプで反応
     if (diff > 50 && !isMobilePanelExpanded) {
-      setIsMobilePanelExpanded(true);
+      toggleMobilePanel(true);
       setTouchStart(null);
     } else if (diff < -50 && isMobilePanelExpanded) {
-      setIsMobilePanelExpanded(false);
+      toggleMobilePanel(false);
       setTouchStart(null);
     }
   };
 
   const handleTouchEnd = () => {
     setTouchStart(null);
+  };
+
+  // UIの排他制御用関数
+  const toggleMobileMenu = (menu: 'nearby' | 'achievements' | null) => {
+    if (menu) {
+      setActiveMobileMenu(menu);
+      setSelectedArch(null); // 左メニューを開く時は建築詳細を閉じる
+      setIsMobilePanelExpanded(false);
+    } else {
+      setActiveMobileMenu(null);
+    }
+  };
+
+  const toggleMobilePanel = (expanded: boolean) => {
+    setIsMobilePanelExpanded(expanded);
+    if (expanded) {
+      setActiveMobileMenu(null); // 下パネルを展開する時は左メニューを閉じる
+    }
   };
 
   // Hydration対策: マウント前は最小限のレンダリング
@@ -332,13 +351,13 @@ export default function Home() {
       {/* --- モバイル専用UI: 左上メニューボタン --- */}
       <div className="md:hidden absolute top-4 left-4 z-[1100] flex flex-col gap-2">
         <button 
-          onClick={() => setActiveMobileMenu(activeMobileMenu === 'nearby' ? null : 'nearby')}
+          onClick={() => toggleMobileMenu(activeMobileMenu === 'nearby' ? null : 'nearby')}
           className={`p-3 rounded-full shadow-2xl transition-all border flex items-center justify-center ${activeMobileMenu === 'nearby' ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-blue-900 border-gray-100'}`}
         >
           <Navigation size={20} />
         </button>
         <button 
-          onClick={() => setActiveMobileMenu(activeMobileMenu === 'achievements' ? null : 'achievements')}
+          onClick={() => toggleMobileMenu(activeMobileMenu === 'achievements' ? null : 'achievements')}
           className={`p-3 rounded-full shadow-2xl transition-all border flex items-center justify-center ${activeMobileMenu === 'achievements' ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-blue-900 border-gray-100'}`}
         >
           <Trophy size={20} />
@@ -357,7 +376,7 @@ export default function Home() {
         {/* 背景の暗転 */}
         <div 
           className={`absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 ${activeMobileMenu ? 'opacity-100' : 'opacity-0'}`}
-          onClick={() => setActiveMobileMenu(null)}
+          onClick={() => toggleMobileMenu(null)}
         ></div>
 
         {/* メニュー本体 */}
@@ -371,7 +390,7 @@ export default function Home() {
                 {activeMobileMenu === 'nearby' ? 'Nearby' : (activeMobileMenu === 'achievements' ? 'Achievements' : '')}
               </h2>
             </div>
-            <button onClick={() => setActiveMobileMenu(null)} className="p-2 text-gray-400 hover:text-black active:scale-90 transition-transform">
+            <button onClick={() => toggleMobileMenu(null)} className="p-2 text-gray-400 hover:text-black active:scale-90 transition-transform">
               <X size={24} />
             </button>
           </div>
@@ -396,7 +415,7 @@ export default function Home() {
                   suggestions.map((item, idx) => (
                     <button 
                       key={idx}
-                      onClick={() => { handleSelectArchitecture(item.title, true); setActiveMobileMenu(null); }}
+                      onClick={() => { handleSelectArchitecture(item.title, true); toggleMobileMenu(null); }}
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 text-left active:bg-blue-100 transition-colors"
                     >
                       <div className="flex-1 min-w-0 pr-2">
@@ -449,8 +468,8 @@ export default function Home() {
       </div>
 
       {/* --- モバイル専用UI: プルアップタブ (Architecture Info) --- */}
-      {selectedArch && (
-        <div className={`md:hidden absolute left-0 right-0 bottom-0 z-[1300] bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-[32px] transition-all duration-500 ease-out flex flex-col ${isMobilePanelExpanded ? 'h-[85%]' : 'h-[160px]'}`}>
+      {selectedArch && !activeMobileMenu && (
+        <div className={`md:hidden absolute left-0 right-0 bottom-0 z-[1300] bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-[32px] transition-all duration-500 ease-out flex flex-col ${isMobilePanelExpanded ? 'h-[85%]' : 'h-[20vh]'}`}>
           {/* プルバー */}
           <div 
             className="w-full h-12 flex flex-col items-center justify-center shrink-0"
