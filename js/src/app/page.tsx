@@ -722,8 +722,12 @@ export default function Home() {
         </div>
       </div>
 
-      {/* --- 共通UI: 現在地ボタン (モバイル時は調整済み) --- */}
-      <div className="absolute bottom-6 right-6 md:bottom-10 md:right-10 z-[1000] pointer-events-auto">
+      {/* --- 共通UI: 現在地ボタン (モバイル時は詳細パネルに合わせて浮上) --- */}
+      <div className={`absolute right-6 md:right-10 md:bottom-10 z-[1000] pointer-events-auto transition-all duration-500 ease-out ${
+        selectedArch && !activeMobileMenu 
+          ? (isMobilePanelExpanded ? 'bottom-[88vh]' : 'bottom-[23vh]') 
+          : 'bottom-6'
+      }`}>
         <button 
           onClick={handleCenterUser}
           className="p-4 bg-white shadow-2xl rounded-full text-blue-900 hover:bg-blue-900 hover:text-white transition-all border border-gray-100 active:scale-90 flex items-center justify-center"
