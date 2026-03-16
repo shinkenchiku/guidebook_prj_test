@@ -252,6 +252,7 @@ export default function Home() {
             command={mapCommand}
             highlightTitle={routeDestTitle || selectedArch?.title || null}
             displayData={displayArchitectures}
+            favoriteTitles={favoriteTitles}
           />
         </Suspense>
       </div>
