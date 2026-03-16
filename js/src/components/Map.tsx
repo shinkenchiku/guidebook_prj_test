@@ -56,10 +56,6 @@ function MapController({
     const isPC = window.innerWidth >= 768;
     
     if (isPC) {
-      // PC時は左側 1/3 がパネル。
-      // ピンを画面の 2/3 (右側エリアの中心) に表示させたい。
-      // マップ全体の中心(W/2)から右側エリアの中心(2W/3)までの距離は W/6。
-      // ピンを右に W/6 ずらすためには、カメラ(中心)を左に W/6 移動させる。
       const offsetInPixels = map.getSize().x / 6; 
       const targetPixelCenter = pixelPoint.subtract([offsetInPixels, 0]);
       return map.unproject(targetPixelCenter, zoom);
@@ -68,12 +64,8 @@ function MapController({
     }
   }, [map]);
 
-  useEffect(() => {
-    if (userLocation && !command) {
-      const offsetCenter = getOffsetCenter(userLocation.lat, userLocation.lng);
-      if (offsetCenter) map.setView(offsetCenter, map.getZoom());
-    }
-  }, [userLocation, command, map, getOffsetCenter]);
+  // userLocation の変化による useEffect (自動 setView) は完全に削除しました。
+  // 地図の移動は以下の command による useEffect のみが担当します。
 
   useEffect(() => {
     if (!command) return;
