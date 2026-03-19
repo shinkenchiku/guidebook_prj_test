@@ -10,26 +10,41 @@ import { ArchitectureInit, UserLocation, MapCommand } from '../types';
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+  iconSize: [20, 32],
+  iconAnchor: [10, 32],
+  popupAnchor: [1, -34],
+  shadowSize: [32, 32]
 });
 
 const HighlightIcon = L.icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+  iconSize: [20, 32],
+  iconAnchor: [10, 32],
   popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+  shadowSize: [32, 32]
 });
 
 const UserIcon = L.icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
   iconSize: [20, 32],
   iconAnchor: [10, 32],
   popupAnchor: [1, -34],
   shadowSize: [32, 32]
+});
+
+// お気に入り用アイコン（ピンクのハートマーク SVG）
+const FavoriteIcon = L.divIcon({
+  className: 'custom-favorite-icon',
+  html: `<div style="display: flex; justify-content: center; align-items: center; width: 30px; height: 30px; background-color: white; border-radius: 50%; border: 2px solid #ec4899; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#ec4899" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+          </svg>
+         </div>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -15]
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
@@ -56,10 +71,6 @@ function MapController({
     const isPC = window.innerWidth >= 768;
     
     if (isPC) {
-      // PC時は左側 1/3 がパネル。
-      // ピンを画面の 2/3 (右側エリアの中心) に表示させたい。
-      // マップ全体の中心(W/2)から右側エリアの中心(2W/3)までの距離は W/6。
-      // ピンを右に W/6 ずらすためには、カメラ(中心)を左に W/6 移動させる。
       const offsetInPixels = map.getSize().x / 6; 
       const targetPixelCenter = pixelPoint.subtract([offsetInPixels, 0]);
       return map.unproject(targetPixelCenter, zoom);
@@ -68,20 +79,13 @@ function MapController({
     }
   }, [map]);
 
-  useEffect(() => {
-    if (userLocation && !command) {
-      const offsetCenter = getOffsetCenter(userLocation.lat, userLocation.lng);
-      if (offsetCenter) map.setView(offsetCenter, map.getZoom());
-    }
-  }, [userLocation, command, map, getOffsetCenter]);
-
+  // 地図の移動は以下の command による useEffect のみが担当します。
   useEffect(() => {
     if (!command) return;
 
     if (command.type === 'FLY_TO') {
       const { lat, lng, zoom } = command.payload;
       const targetZoom = zoom || 17;
-      // 移動先のズームレベルを使ってオフセットを再計算
       const offsetCenter = getOffsetCenter(lat, lng, targetZoom);
       if (offsetCenter) map.flyTo(offsetCenter, targetZoom);
     } 
@@ -120,19 +124,26 @@ interface MapProps {
   command: MapCommand | null;
   highlightTitle: string | null;
   displayData: ArchitectureInit[];
+  favoriteTitles: string[];
 }
 
-const Map = ({ onSelectArchitecture, userLocation, setUserLocation, radius, command, highlightTitle, displayData }: MapProps) => {
+const Map = ({ onSelectArchitecture, userLocation, setUserLocation, radius, command, highlightTitle, displayData, favoriteTitles }: MapProps) => {
   const [route, setRoute] = useState<[number, number][] | null>(null);
 
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      const watchId = navigator.geolocation.watchPosition((position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        });
-      }, (err) => console.error(err), { enableHighAccuracy: true });
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (err) => {
+          console.error("Geolocation error:", err);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
       return () => navigator.geolocation.clearWatch(watchId);
     }
   }, [setUserLocation]);
@@ -157,7 +168,7 @@ const Map = ({ onSelectArchitecture, userLocation, setUserLocation, radius, comm
         .catch(() => {
           setRoute([[userLocation.lat, userLocation.lng], [to.lat, to.lng]]);
         });
-    } else if (command?.type === 'FLY_TO' || command?.type === 'FIT_BOUNDS' || command?.type === 'RESET_VIEW') {
+    } else if (command) {
       setRoute(null);
     }
   }, [command, userLocation]);
@@ -203,13 +214,23 @@ const Map = ({ onSelectArchitecture, userLocation, setUserLocation, radius, comm
           const lng = parseFloat(arch.location[1]);
           if (isNaN(lat) || isNaN(lng)) return null;
 
+          let icon: L.Icon | L.DivIcon = DefaultIcon;
+          const isSelected = arch.title === highlightTitle;
+          const isFavorite = favoriteTitles.includes(arch.title);
+
+          if (isSelected) {
+            icon = HighlightIcon;
+          } else if (isFavorite) {
+            icon = FavoriteIcon;
+          }
+
           return (
             <Marker 
               key={idx} 
               position={[lat, lng]}
-              icon={arch.title === highlightTitle ? HighlightIcon : DefaultIcon}
+              icon={icon}
               eventHandlers={{ click: () => onSelectArchitecture(arch.title) }}
-              zIndexOffset={arch.title === highlightTitle ? 1000 : 0}
+              zIndexOffset={isSelected ? 1000 : (isFavorite ? 500 : 0)}
             >
               <Popup>
                 <div className="text-xs font-bold text-black">{arch.title}</div>
