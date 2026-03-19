@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { ArchitectureInit, ArchitectureMain, UserLocation, MapCommand } from '../types';
-import { MapPin, Trophy, Info, ExternalLink, Navigation, Route, Crosshair, ChevronDown, ChevronUp, X, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { MapPin, Trophy, Info, ExternalLink, Navigation, Route, Crosshair, ChevronDown, ChevronUp, X, ChevronLeft, ChevronRight, CheckCircle2, Heart } from 'lucide-react';
 
 // マップコンポーネントをSSRなしで動的にインポート
 const MapWithNoSSR = dynamic(() => import('@/components/Map'), {
@@ -31,9 +31,11 @@ export default function Home() {
   const [selectedArch, setSelectedArch] = useState<ArchitectureMain | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [visitedTitles, setVisitedTitles] = useState<string[]>([]);
+  const [favoriteTitles, setFavoriteTitles] = useState<string[]>([]);
   const [radius, setRadius] = useState<number>(2); // km
   const [mapCommand, setMapCommand] = useState<MapCommand | null>(null);
   const [isAchievementOpen, setIsAchievementOpen] = useState(false);
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [routeDestTitle, setRouteDestTitle] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -41,7 +43,7 @@ export default function Home() {
 
   // モバイル向けUI管理用のステート
   const [isMobilePanelExpanded, setIsMobilePanelExpanded] = useState(false);
-  const [activeMobileMenu, setActiveMobileMenu] = useState<'nearby' | 'achievements' | null>(null);
+  const [activeMobileMenu, setActiveMobileMenu] = useState<'nearby' | 'achievements' | 'favorites' | null>(null);
 
   // 接近通知用のステート
   const [approachingArch, setApproachingArch] = useState<ArchitectureInit | null>(null);
@@ -78,9 +80,13 @@ export default function Home() {
         setInitData(init);
         setMainData(mergedMain);
 
-        const saved = localStorage.getItem('visited_architectures');
-        if (saved) {
-          setVisitedTitles(JSON.parse(saved));
+        const savedVisited = localStorage.getItem('visited_architectures');
+        if (savedVisited) {
+          setVisitedTitles(JSON.parse(savedVisited));
+        }
+        const savedFavorites = localStorage.getItem('favorite_architectures');
+        if (savedFavorites) {
+          setFavoriteTitles(JSON.parse(savedFavorites));
         }
       } catch (e) {
         console.error("Data fetch error:", e);
@@ -111,8 +117,20 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedArch, nextImage, prevImage]);
 
+  // お気に入り切り替え
+  const toggleFavorite = (title: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setFavoriteTitles(prev => {
+      const next = prev.includes(title) 
+        ? prev.filter(t => t !== title) 
+        : [...prev, title];
+      localStorage.setItem('favorite_architectures', JSON.stringify(next));
+      return next;
+    });
+  };
+
   // UI排他制御
-  const toggleMobileMenu = (menu: 'nearby' | 'achievements' | null) => {
+  const toggleMobileMenu = (menu: 'nearby' | 'achievements' | 'favorites' | null) => {
     if (menu) {
       setActiveMobileMenu(menu);
       setSelectedArch(null);
@@ -130,6 +148,7 @@ export default function Home() {
       setSelectedArch(detail);
       setCurrentImgIdx(0);
       setRouteDestTitle(null); 
+      setIsFavoritesOpen(false); // お気に入りリストが開いていたら閉じる
       if (typeof window !== 'undefined' && window.innerWidth < 768) {
         setIsMobilePanelExpanded(false);
         setActiveMobileMenu(null);
@@ -233,6 +252,7 @@ export default function Home() {
             command={mapCommand}
             highlightTitle={routeDestTitle || selectedArch?.title || null}
             displayData={displayArchitectures}
+            favoriteTitles={favoriteTitles}
           />
         </Suspense>
       </div>
@@ -254,6 +274,7 @@ export default function Home() {
 
       {/* 左上メニューボタン */}
       <div className="md:hidden absolute top-4 left-4 z-[1100] flex flex-col gap-2">
+        <button onClick={() => toggleMobileMenu(activeMobileMenu === 'favorites' ? null : 'favorites')} className={`p-3 rounded-full shadow-2xl border flex items-center justify-center ${activeMobileMenu === 'favorites' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-red-600 border-gray-100'}`}><Heart size={20} fill={activeMobileMenu === 'favorites' ? 'white' : 'none'} /></button>
         <button onClick={() => toggleMobileMenu(activeMobileMenu === 'nearby' ? null : 'nearby')} className={`p-3 rounded-full shadow-2xl border flex items-center justify-center ${activeMobileMenu === 'nearby' ? 'bg-blue-900 text-white' : 'bg-white text-blue-900'}`}><Navigation size={20} /></button>
         <button onClick={() => toggleMobileMenu(activeMobileMenu === 'achievements' ? null : 'achievements')} className={`p-3 rounded-full shadow-2xl border relative flex items-center justify-center ${activeMobileMenu === 'achievements' ? 'bg-blue-900 text-white' : 'bg-white text-blue-900'}`}><Trophy size={20} />{visitedTitles.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-white">{visitedTitles.length}</span>}</button>
       </div>
@@ -264,21 +285,68 @@ export default function Home() {
         <div className={`relative w-[85%] h-full bg-white shadow-2xl p-6 overflow-y-auto flex flex-col gap-6 transition-transform duration-300 transform ${activeMobileMenu ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex items-center justify-between border-b pb-3">
             <div className="flex items-center gap-2">
-              {activeMobileMenu === 'nearby' ? <Navigation className="text-blue-900" size={20} /> : <Trophy className="text-blue-900" size={20} />}
-              <h2 className="text-lg font-bold text-blue-900 uppercase">{activeMobileMenu === 'nearby' ? 'Nearby' : 'Achievements'}</h2>
+              {activeMobileMenu === 'nearby' && <Navigation className="text-blue-900" size={20} />}
+              {activeMobileMenu === 'achievements' && <Trophy className="text-blue-900" size={20} />}
+              {activeMobileMenu === 'favorites' && <Heart className="text-red-600" size={20} fill="currentColor" />}
+              <h2 className="text-lg font-bold text-blue-900 uppercase">{activeMobileMenu === 'nearby' ? 'Nearby' : activeMobileMenu === 'achievements' ? 'Achievements' : 'Favorites'}</h2>
             </div>
             <button onClick={() => toggleMobileMenu(null)} className="p-2 text-gray-400"><X size={24} /></button>
           </div>
           {activeMobileMenu === 'nearby' && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between bg-blue-50 p-3 rounded-xl"><span className="text-xs font-bold text-blue-900">Radius</span><select className="text-xs font-bold border-2 border-blue-900 rounded-full px-3 py-1" value={radius} onChange={(e) => setRadius(Number(e.target.value))}><option value={0.5}>500m</option><option value={1}>1km</option><option value={2}>2km</option><option value={5}>5km</option></select></div>
-              <div className="flex flex-col gap-2">{suggestions.map((item, idx) => (<button key={idx} onClick={() => handleSelectArchitecture(item.title, true)} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border text-left active:bg-blue-100"><div className="flex-1 min-w-0 pr-2"><div className="font-bold text-sm truncate">{item.title}</div><div className="text-[11px] opacity-60 truncate">{item.architect}</div></div><div className="text-xs font-black text-blue-900">{item.distance < 1 ? `${(item.distance * 1000).toFixed(0)}m` : `${item.distance.toFixed(1)}km`}</div></button>))}</div>
+              <div className="flex flex-col gap-2">{suggestions.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <button onClick={() => handleSelectArchitecture(item.title, true)} className="flex-1 flex items-center justify-between p-4 bg-gray-50 rounded-xl border text-left active:bg-blue-100 min-w-0">
+                    <div className="flex-1 min-w-0 pr-2">
+                      <div className="font-bold text-sm truncate">{item.title}</div>
+                      <div className="text-[11px] opacity-60 truncate">{item.architect}</div>
+                    </div>
+                    <div className="text-xs font-black text-blue-900 shrink-0">{item.distance < 1 ? `${(item.distance * 1000).toFixed(0)}m` : `${item.distance.toFixed(1)}km`}</div>
+                  </button>
+                  <button onClick={(e) => toggleFavorite(item.title, e)} className={`p-3 rounded-xl border shrink-0 transition-colors ${favoriteTitles.includes(item.title) ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-50 text-gray-300 border-gray-200'}`}>
+                    <Heart size={20} fill={favoriteTitles.includes(item.title) ? 'currentColor' : 'none'} />
+                  </button>
+                </div>
+              ))}</div>
             </div>
           )}
           {activeMobileMenu === 'achievements' && (
             <div className="flex flex-col gap-4">
               <div className="bg-blue-50 p-4 rounded-xl"><div className="flex justify-between text-[11px] mb-2 font-black text-blue-900"><span>Progress</span><span>{Math.round((visitedTitles.length / (initData.length || 1)) * 100)}%</span></div><div className="w-full bg-white h-2 rounded-full overflow-hidden"><div className="bg-blue-900 h-full transition-all duration-1000" style={{ width: `${(visitedTitles.length / (initData.length || 1)) * 100}%` }}></div></div></div>
-              <div className="flex flex-col gap-2">{visitedTitles.map((title, i) => (<div key={i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl border"><div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center text-white shrink-0"><Trophy size={14} /></div><div className="text-xs font-bold truncate">{title}</div></div>)).reverse()}</div>
+              <div className="flex flex-col gap-2">{visitedTitles.map((title, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-4 p-3 bg-gray-50 rounded-xl border min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center text-white shrink-0"><Trophy size={14} /></div>
+                    <div className="text-xs font-bold truncate">{title}</div>
+                  </div>
+                  <button onClick={(e) => toggleFavorite(title, e)} className={`p-3 rounded-xl border shrink-0 transition-colors ${favoriteTitles.includes(title) ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-50 text-gray-300 border-gray-200'}`}>
+                    <Heart size={20} fill={favoriteTitles.includes(title) ? 'currentColor' : 'none'} />
+                  </button>
+                </div>
+              )).reverse()}</div>
+            </div>
+          )}
+          {activeMobileMenu === 'favorites' && (
+            <div className="flex flex-col gap-2">
+              {favoriteTitles.length === 0 ? (
+                <div className="py-10 text-center text-gray-400 text-sm">No favorites yet.</div>
+              ) : (
+                favoriteTitles.map((title, i) => {
+                  const info = initData.find(d => d.title === title);
+                  return (
+                    <div key={i} className="flex items-center gap-2">
+                      <button onClick={() => handleSelectArchitecture(title, true)} className="flex-1 flex flex-col p-4 bg-gray-50 rounded-xl border text-left active:bg-blue-100 min-w-0">
+                        <div className="font-bold text-sm truncate">{title}</div>
+                        <div className="text-[11px] opacity-60 truncate">{info?.architect || '-'}</div>
+                      </button>
+                      <button onClick={(e) => toggleFavorite(title, e)} className="p-3 rounded-xl border shrink-0 bg-red-50 text-red-600 border-red-200">
+                        <Heart size={20} fill="currentColor" />
+                      </button>
+                    </div>
+                  );
+                }).reverse()
+              )}
             </div>
           )}
         </div>
@@ -301,7 +369,13 @@ export default function Home() {
           <div className="flex-1 overflow-y-auto px-6 pb-10">
             <div className="flex items-start justify-between gap-4 mb-6">
               <div className="flex-1 min-w-0"><h3 className="text-xl font-black text-blue-900 leading-tight mb-1">{selectedArch.title}</h3><p className="text-black text-xs font-bold opacity-70">{selectedArch.architect}</p></div>
-              <div className="flex gap-2 shrink-0"><button onClick={() => handleShowRoute(null, selectedArch)} className="p-3 bg-blue-900 rounded-2xl text-white shadow-lg active:scale-95"><Route size={20} /></button><button onClick={() => setSelectedArch(null)} className="p-3 bg-gray-100 rounded-2xl text-gray-400 active:scale-95"><X size={20} /></button></div>
+              <div className="flex gap-2 shrink-0">
+                <button onClick={(e) => toggleFavorite(selectedArch.title, e)} className={`p-3 rounded-2xl shadow-lg active:scale-95 border transition-colors ${favoriteTitles.includes(selectedArch.title) ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-gray-300 border-gray-100'}`}>
+                  <Heart size={20} fill={favoriteTitles.includes(selectedArch.title) ? 'currentColor' : 'none'} />
+                </button>
+                <button onClick={() => handleShowRoute(null, selectedArch)} className="p-3 bg-blue-900 rounded-2xl text-white shadow-lg active:scale-95"><Route size={20} /></button>
+                <button onClick={() => setSelectedArch(null)} className="p-3 bg-gray-100 rounded-2xl text-gray-400 active:scale-95"><X size={20} /></button>
+              </div>
             </div>
             <div className={`transition-opacity duration-300 flex flex-col gap-6 ${isMobilePanelExpanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
               <div className="w-full aspect-video bg-gray-100 rounded-2xl overflow-hidden relative group shadow-inner">
@@ -327,10 +401,55 @@ export default function Home() {
       {/* デスクトップ専用UI */}
       <div className="hidden md:flex relative w-[30%] h-full z-10 p-4 pointer-events-none flex-col gap-4 overflow-y-auto custom-scrollbar bg-white/5 backdrop-blur-[2px]">
         <div className="pointer-events-auto flex flex-col gap-4">
-          <header className="bg-white shadow-xl rounded-xl p-6 border-t-4 border-blue-900 shrink-0"><h1 className="text-2xl font-bold tracking-tight text-blue-900">ARCHI-GUIDE</h1><p className="text-[10px] font-bold text-black uppercase tracking-wider mt-1">Digital Guidebook v1.0</p></header>
-          {selectedArch ? (
+          <header className="bg-white shadow-xl rounded-xl p-6 border-t-4 border-blue-900 shrink-0 relative">
+            <h1 className="text-2xl font-bold tracking-tight text-blue-900">ARCHI-GUIDE</h1>
+            <p className="text-[10px] font-bold text-black uppercase tracking-wider mt-1">Digital Guidebook v1.0</p>
+            <button 
+              onClick={() => setIsFavoritesOpen(!isFavoritesOpen)} 
+              className={`absolute top-6 right-6 p-2 rounded-lg transition-all ${isFavoritesOpen ? 'bg-red-600 text-white' : 'bg-gray-100 text-red-600 hover:bg-red-50'}`}
+            >
+              <Heart size={20} fill={isFavoritesOpen ? 'white' : 'none'} />
+            </button>
+          </header>
+
+          {isFavoritesOpen ? (
+            <section className="bg-white shadow-xl rounded-xl p-4 shrink-0 animate-in slide-in-from-left duration-300">
+              <div className="flex items-center justify-between mb-3 border-b pb-2">
+                <div className="flex items-center gap-2"><Heart className="text-red-600" size={18} fill="currentColor" /><h2 className="text-sm font-bold text-blue-900 uppercase">Favorites</h2></div>
+                <button onClick={() => setIsFavoritesOpen(false)} className="text-gray-400 hover:text-black"><X size={18} /></button>
+              </div>
+              <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
+                {favoriteTitles.length === 0 ? (
+                  <div className="py-10 text-center text-gray-400 text-[10px] font-bold uppercase">No favorites yet</div>
+                ) : (
+                  favoriteTitles.map((title, i) => {
+                    const info = initData.find(d => d.title === title);
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <button onClick={() => handleSelectArchitecture(title, true)} className="flex-1 p-3 bg-gray-50 hover:bg-blue-50 rounded-lg border text-left transition-all min-w-0">
+                          <div className="font-bold text-[11px] truncate text-blue-900">{title}</div>
+                          <div className="text-[9px] font-bold truncate opacity-60">{info?.architect || '-'}</div>
+                        </button>
+                        <button onClick={(e) => toggleFavorite(title, e)} className="p-2.5 bg-red-50 text-red-600 rounded-lg border border-red-100 shrink-0 hover:bg-red-100">
+                          <Heart size={16} fill="currentColor" />
+                        </button>
+                      </div>
+                    );
+                  }).reverse()
+                )}
+              </div>
+            </section>
+          ) : selectedArch ? (
             <section className="bg-white shadow-xl rounded-xl p-4 shrink-0">
-              <div className="flex items-center gap-2 mb-3 border-b pb-2"><Info className="text-blue-900" size={18} /><h2 className="text-sm font-bold text-blue-900 uppercase">Architecture Info</h2></div>
+              <div className="flex items-center justify-between mb-3 border-b pb-2">
+                <div className="flex items-center gap-2"><Info className="text-blue-900" size={18} /><h2 className="text-sm font-bold text-blue-900 uppercase">Architecture Info</h2></div>
+                <div className="flex gap-2">
+                  <button onClick={(e) => toggleFavorite(selectedArch.title, e)} className={`p-1.5 rounded-lg border transition-all ${favoriteTitles.includes(selectedArch.title) ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-red-50 hover:text-red-600'}`}>
+                    <Heart size={16} fill={favoriteTitles.includes(selectedArch.title) ? 'currentColor' : 'none'} />
+                  </button>
+                  <button onClick={() => setSelectedArch(null)} className="p-1.5 bg-gray-100 text-gray-400 rounded-lg border border-gray-200 hover:text-black hover:bg-gray-200 transition-all"><X size={16} /></button>
+                </div>
+              </div>
               <div className="flex flex-col gap-3">
                 <div className="w-full aspect-[21/9] bg-gray-100 rounded-lg overflow-hidden border relative group">
                   <img src={(selectedArch.images && selectedArch.images.length > 0) ? selectedArch.images[currentImgIdx] : '/img/noimage.jpg'} alt={selectedArch.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/img/noimage.jpg'; }} />
@@ -353,14 +472,39 @@ export default function Home() {
           ) : (
             <section className="bg-white shadow-xl rounded-xl p-10 flex flex-col items-center justify-center opacity-30"><MapPin size={32} className="text-blue-900" /><p className="text-[10px] font-bold mt-2 uppercase text-center">Select a pin</p></section>
           )}
+
           <section className="bg-white shadow-xl rounded-xl p-6 flex flex-col gap-4 shrink-0">
             <div className="flex items-center justify-between border-b pb-2"><div className="flex items-center gap-2"><Navigation className="text-blue-900" size={18} /><h2 className="text-sm font-bold text-blue-900 uppercase">Nearby</h2></div><select className="text-[10px] font-bold border-2 border-blue-900 rounded-full px-3 py-1" value={radius} onChange={(e) => setRadius(Number(e.target.value))}><option value={0.5}>500m</option><option value={1}>1km</option><option value={2}>2km</option><option value={5}>5km</option></select></div>
-            <div className="flex flex-col gap-2">{suggestions.map((item, idx) => (<button key={idx} onClick={() => handleSelectArchitecture(item.title, true)} className="group flex items-center justify-between p-3 bg-white hover:bg-blue-900 rounded-lg border transition-all shadow-sm"><div className="flex-1 min-w-0 pr-2"><div className="font-bold text-[11px] truncate group-hover:text-white">{item.title}</div><div className="text-[9px] font-bold truncate opacity-60 group-hover:text-blue-100">{item.architect}</div></div><div className="text-[10px] font-bold text-blue-900 group-hover:text-white">{item.distance < 1 ? `${(item.distance * 1000).toFixed(0)}m` : `${item.distance.toFixed(1)}km`}</div></button>))}</div>
+            <div className="flex flex-col gap-2">{suggestions.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2 group">
+                <button onClick={() => handleSelectArchitecture(item.title, true)} className="flex-1 flex items-center justify-between p-3 bg-white hover:bg-blue-900 rounded-lg border transition-all shadow-sm min-w-0">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <div className="font-bold text-[11px] truncate group-hover:text-white">{item.title}</div>
+                    <div className="text-[9px] font-bold truncate opacity-60 group-hover:text-blue-100">{item.architect}</div>
+                  </div>
+                  <div className="text-[10px] font-bold text-blue-900 group-hover:text-white shrink-0">{item.distance < 1 ? `${(item.distance * 1000).toFixed(0)}m` : `${item.distance.toFixed(1)}km`}</div>
+                </button>
+                <button onClick={(e) => toggleFavorite(item.title, e)} className={`p-2.5 rounded-lg border transition-all ${favoriteTitles.includes(item.title) ? 'bg-red-50 text-red-600 border-red-100' : 'bg-white text-gray-200 border-gray-200 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 hover:border-red-100'}`}>
+                  <Heart size={16} fill={favoriteTitles.includes(item.title) ? 'currentColor' : 'none'} />
+                </button>
+              </div>
+            ))}</div>
           </section>
+
           <section className="bg-white shadow-xl rounded-xl p-6 shrink-0 mb-4">
             <button onClick={() => setIsAchievementOpen(!isAchievementOpen)} className="w-full flex items-center justify-between border-b pb-2 mb-4 group"><div className="flex items-center gap-2"><Trophy className="text-blue-900" size={18} /><h2 className="text-sm font-bold text-blue-900 uppercase">Achievements</h2><span className="ml-2 text-[11px] font-bold px-2 py-0.5 bg-blue-100 rounded-full">{visitedTitles.length}</span></div>{isAchievementOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button>
             <div className="mb-2"><div className="flex justify-between text-[10px] mb-1 font-bold opacity-60"><span>Progress</span><span>{Math.round((visitedTitles.length / (initData.length || 1)) * 100)}%</span></div><div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div className="bg-blue-900 h-full transition-all duration-1000" style={{ width: `${(visitedTitles.length / (initData.length || 1)) * 100}%` }}></div></div></div>
-            {isAchievementOpen && (<div className="mt-4 flex flex-col gap-2">{visitedTitles.map((title, i) => (<div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border"><div className="w-6 h-6 rounded-full bg-blue-900 flex items-center justify-center text-white shrink-0"><Trophy size={12} /></div><div className="text-[10px] font-bold truncate">{title}</div></div>)).reverse()}</div>)}
+            {isAchievementOpen && (<div className="mt-4 flex flex-col gap-2">{visitedTitles.map((title, i) => (
+              <div key={i} className="flex items-center gap-2 group">
+                <div className="flex-1 flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg border min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-blue-900 flex items-center justify-center text-white shrink-0"><Trophy size={12} /></div>
+                  <div className="text-[10px] font-bold truncate">{title}</div>
+                </div>
+                <button onClick={(e) => toggleFavorite(title, e)} className={`p-2.5 rounded-lg border transition-all ${favoriteTitles.includes(title) ? 'bg-red-50 text-red-600 border-red-100' : 'bg-white text-gray-200 border-gray-200 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 hover:border-red-100'}`}>
+                  <Heart size={16} fill={favoriteTitles.includes(title) ? 'currentColor' : 'none'} />
+                </button>
+              </div>
+            )).reverse()}</div>)}
           </section>
         </div>
       </div>
