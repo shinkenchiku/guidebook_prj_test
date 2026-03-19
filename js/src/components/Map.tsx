@@ -214,7 +214,7 @@ const Map = ({ onSelectArchitecture, userLocation, setUserLocation, radius, comm
           const lng = parseFloat(arch.location[1]);
           if (isNaN(lat) || isNaN(lng)) return null;
 
-          let icon = DefaultIcon;
+          let icon: L.Icon | L.DivIcon = DefaultIcon;
           const isSelected = arch.title === highlightTitle;
           const isFavorite = favoriteTitles.includes(arch.title);
 
