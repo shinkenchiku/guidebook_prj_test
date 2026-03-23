@@ -404,42 +404,9 @@ export default function Home() {
           <header className="bg-white shadow-xl rounded-xl p-6 border-t-4 border-blue-900 shrink-0 relative">
             <h1 className="text-2xl font-bold tracking-tight text-blue-900">ARCHI-GUIDE</h1>
             <p className="text-[10px] font-bold text-black uppercase tracking-wider mt-1">Digital Guidebook v1.0</p>
-            <button 
-              onClick={() => setIsFavoritesOpen(!isFavoritesOpen)} 
-              className={`absolute top-6 right-6 p-2 rounded-lg transition-all ${isFavoritesOpen ? 'bg-red-600 text-white' : 'bg-gray-100 text-red-600 hover:bg-red-50'}`}
-            >
-              <Heart size={20} fill={isFavoritesOpen ? 'white' : 'none'} />
-            </button>
           </header>
 
-          {isFavoritesOpen ? (
-            <section className="bg-white shadow-xl rounded-xl p-4 shrink-0 animate-in slide-in-from-left duration-300">
-              <div className="flex items-center justify-between mb-3 border-b pb-2">
-                <div className="flex items-center gap-2"><Heart className="text-red-600" size={18} fill="currentColor" /><h2 className="text-sm font-bold text-blue-900 uppercase">Favorites</h2></div>
-                <button onClick={() => setIsFavoritesOpen(false)} className="text-gray-400 hover:text-black"><X size={18} /></button>
-              </div>
-              <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
-                {favoriteTitles.length === 0 ? (
-                  <div className="py-10 text-center text-gray-400 text-[10px] font-bold uppercase">No favorites yet</div>
-                ) : (
-                  favoriteTitles.map((title, i) => {
-                    const info = initData.find(d => d.title === title);
-                    return (
-                      <div key={i} className="flex items-center gap-2">
-                        <button onClick={() => handleSelectArchitecture(title, true)} className="flex-1 p-3 bg-gray-50 hover:bg-blue-50 rounded-lg border text-left transition-all min-w-0">
-                          <div className="font-bold text-[11px] truncate text-blue-900">{title}</div>
-                          <div className="text-[9px] font-bold truncate opacity-60">{info?.architect || '-'}</div>
-                        </button>
-                        <button onClick={(e) => toggleFavorite(title, e)} className="p-2.5 bg-red-50 text-red-600 rounded-lg border border-red-100 shrink-0 hover:bg-red-100">
-                          <Heart size={16} fill="currentColor" />
-                        </button>
-                      </div>
-                    );
-                  }).reverse()
-                )}
-              </div>
-            </section>
-          ) : selectedArch ? (
+          {selectedArch ? (
             <section className="bg-white shadow-xl rounded-xl p-4 shrink-0">
               <div className="flex items-center justify-between mb-3 border-b pb-2">
                 <div className="flex items-center gap-2"><Info className="text-blue-900" size={18} /><h2 className="text-sm font-bold text-blue-900 uppercase">Architecture Info</h2></div>
@@ -469,9 +436,40 @@ export default function Home() {
                 {selectedArch.link && <a href={selectedArch.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-2.5 bg-blue-900 text-white rounded-lg font-bold text-[10px]"> <ExternalLink size={12} /> MORE INFORMATION </a>}
               </div>
             </section>
-          ) : (
-            <section className="bg-white shadow-xl rounded-xl p-10 flex flex-col items-center justify-center opacity-30"><MapPin size={32} className="text-blue-900" /><p className="text-[10px] font-bold mt-2 uppercase text-center">Select a pin</p></section>
-          )}
+          ) : null}
+
+          <section className="bg-white shadow-xl rounded-xl p-4 shrink-0">
+            <button onClick={() => setIsFavoritesOpen(!isFavoritesOpen)} className="w-full flex items-center justify-between border-b pb-2 mb-2 group">
+              <div className="flex items-center gap-2">
+                <Heart className="text-red-600" size={18} fill={favoriteTitles.length > 0 ? "currentColor" : "none"} />
+                <h2 className="text-sm font-bold text-blue-900 uppercase">Favorites</h2>
+                <span className="ml-2 text-[11px] font-bold px-2 py-0.5 bg-red-100 text-red-600 rounded-full">{favoriteTitles.length}</span>
+              </div>
+              {isFavoritesOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+            {isFavoritesOpen && (
+              <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1 mt-2">
+                {favoriteTitles.length === 0 ? (
+                  <div className="py-10 text-center text-gray-400 text-[10px] font-bold uppercase">No favorites yet</div>
+                ) : (
+                  favoriteTitles.map((title, i) => {
+                    const info = initData.find(d => d.title === title);
+                    return (
+                      <div key={i} className="flex items-center gap-2 group">
+                        <button onClick={() => handleSelectArchitecture(title, true)} className="flex-1 p-3 bg-gray-50 hover:bg-blue-50 rounded-lg border text-left transition-all min-w-0">
+                          <div className="font-bold text-[11px] truncate text-blue-900">{title}</div>
+                          <div className="text-[9px] font-bold truncate opacity-60">{info?.architect || '-'}</div>
+                        </button>
+                        <button onClick={(e) => toggleFavorite(title, e)} className="p-2.5 bg-red-50 text-red-600 rounded-lg border border-red-100 shrink-0 hover:bg-red-100">
+                          <Heart size={16} fill="currentColor" />
+                        </button>
+                      </div>
+                    );
+                  }).reverse()
+                )}
+              </div>
+            )}
+          </section>
 
           <section className="bg-white shadow-xl rounded-xl p-6 flex flex-col gap-4 shrink-0">
             <div className="flex items-center justify-between border-b pb-2"><div className="flex items-center gap-2"><Navigation className="text-blue-900" size={18} /><h2 className="text-sm font-bold text-blue-900 uppercase">Nearby</h2></div><select className="text-[10px] font-bold border-2 border-blue-900 rounded-full px-3 py-1" value={radius} onChange={(e) => setRadius(Number(e.target.value))}><option value={0.5}>500m</option><option value={1}>1km</option><option value={2}>2km</option><option value={5}>5km</option></select></div>
